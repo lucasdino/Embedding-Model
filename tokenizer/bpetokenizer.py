@@ -150,9 +150,9 @@ class BPETokenizer():
         self.optimized_decoding_map = optimized_decoding_map
         self.optimized_encoding_map = {tuple(value): key for key, value in optimized_decoding_map.items()}
         # Defining our TrieNode as well to speed up encoding
-        self.trie_root = TrieNode()
+        self.trie_tree = TrieTree()
         for ascii_sequence, token in self.optimized_encoding_map.items():
-            add_to_trie(self.trie_root, ascii_sequence, token)
+            self.trie_tree.add_to_trie(ascii_sequence, token)
 
     def encode(self, text):
         """
@@ -163,7 +163,7 @@ class BPETokenizer():
         for block in encoded_text:
             next_idx = 0
             while next_idx < len(block):
-                token = find_longest_matching_token(self.trie_root, block[next_idx:])
+                token = self.trie_tree.find_longest_matching_token(block[next_idx:])
                 next_idx = next_idx + len(self.optimized_decoding_map[token])
                 tokenized_text.append(token)
         return tokenized_text
