@@ -1,6 +1,6 @@
 import torch
 from gpt import train_model, chat
-from tokenizer.bpetokenizer import BPETokenizer
+from tokenizer.train_tokenizer.bpetokenizer import BPETokenizer
 
 mode = "train"
 
