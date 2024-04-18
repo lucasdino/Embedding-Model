@@ -6,7 +6,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', 'sptokenizer_1600
 class MyTokenizer():
     def __init__(self):
         """
-            Given a pretrained tokenizer, import and use in workflow
+            Using 'MODEL_PATH' in this file, load the SentencePiece tokenizer.
         """
         self.model = sp.SentencePieceProcessor()
         self.model.load(MODEL_PATH)
