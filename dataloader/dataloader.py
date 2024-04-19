@@ -1,6 +1,6 @@
 from loaddata import get_dataloader, select_datasets
 
-DEFAULT_DATASET_TRAIN = ["enwiki_articles_20240320_50MB"]
+DEFAULT_DATASET_TRAIN = ["enwiki_articles_20240320"]
 DEFAULT_DATASET_TEST  = ["enwiki_articles_20240320_TEST"]
 
 class MyDataLoader():
