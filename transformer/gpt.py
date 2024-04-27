@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -9,12 +10,14 @@ class Head(nn.Module):
 
     def __init__(self, params):
         super().__init__()
-        self.key = nn.Linear(params['n_embd'], params['head_size'], bias=False)
-        self.query = nn.Linear(params['n_embd'], params['head_size'], bias=False)
-        self.value = nn.Linear(params['n_embd'], params['head_size'], bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(params['block_size'], params['block_size'])))
+        head_size = params['embed_dim'] // params['n_head']
+        self.key = nn.Linear(params['embed_dim'], head_size, bias=False)
+        self.query = nn.Linear(params['embed_dim'], head_size, bias=False)
+        self.value = nn.Linear(params['embed_dim'], head_size, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones(params['context_size'], params['context_size'])))
 
         self.dropout = nn.Dropout(params['dropout'])
+
 
     def forward(self, x):
         # input of size (batch, time-step, channels)
@@ -33,19 +36,23 @@ class Head(nn.Module):
         return out
 
 
+
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
 
     def __init__(self, params):
         super().__init__()
-        self.heads = nn.ModuleList([Head(params) for _ in range(params['num_heads'])])
-        self.proj = nn.Linear(params['head_size'] * params['num_heads'], params['n_embd'])
+        head_size = params['embed_dim'] // params['n_head']
+        self.heads = nn.ModuleList([Head(params) for _ in range(params['n_head'])])
+        self.proj = nn.Linear(head_size * params['n_head'], params['embed_dim'])
         self.dropout = nn.Dropout(params['dropout'])
+
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
         out = self.dropout(self.proj(out))
         return out
+
 
 
 class FeedFoward(nn.Module):
@@ -54,27 +61,28 @@ class FeedFoward(nn.Module):
     def __init__(self, params):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(params['n_embd'], 4 * params['n_embd']),
+            nn.Linear(params['embed_dim'], 4 * params['embed_dim']),
             nn.ReLU(),
-            nn.Linear(4 * params['n_embd'], params['n_embd']),
+            nn.Linear(4 * params['embed_dim'], params['embed_dim']),
             nn.Dropout(params['dropout']),
         )
 
+
     def forward(self, x):
         return self.net(x)
+
 
 
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
     def __init__(self, params):
-        # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
-        head_size = params['n_embd'] // params['n_head']
         self.sa = MultiHeadAttention(params)
         self.ffwd = FeedFoward(params)
-        self.ln1 = nn.LayerNorm(params['n_embd'])
-        self.ln2 = nn.LayerNorm(params['n_embd'])
+        self.ln1 = nn.LayerNorm(params['embed_dim'])
+        self.ln2 = nn.LayerNorm(params['embed_dim'])
+
 
     def forward(self, x):
         x = x + self.sa(self.ln1(x))
@@ -82,28 +90,33 @@ class Block(nn.Module):
         return x
 
 
+
 class GPTLanguageModel(nn.Module):
     def __init__(self, params, device):
         super().__init__()
+        self.params = params
         self.device = device
-        self.token_embedding_table = nn.Embedding(params['vocab_size'], params['n_embd'])
-        self.position_embedding_table = nn.Embedding(params['block_size'], params['n_embd'])
-        self.blocks = nn.Sequential(*[Block(params['n_embd'], n_head=params['n_head']) for _ in range(params['n_layer'])])
-        self.ln_f = nn.LayerNorm(params['n_embd'])
-        self.lm_head = nn.Linear(params['n_embd'], params['vocab_size'])
+        self.token_embedding_table = get_embeddings()
+        self.position_embedding_table = nn.Embedding(params['context_size'], params['embed_dim'])
+        self.blocks = nn.Sequential(*[Block(params) for _ in range(params['n_layer'])])
+        self.ln_f = nn.LayerNorm(params['embed_dim'])
+        self.lm_head = nn.Linear(params['embed_dim'], params['vocab_size'])
 
-        # Make token_embedding_table non-trainable
+        # Make token_embedding_table non-trainable and normalize it
         self.token_embedding_table.weight.requires_grad = False
+        self.token_embedding_table.weight.data = self.token_embedding_table.weight.data / torch.linalg.norm(self.token_embedding_table.weight.data, dim=1, keepdim=True)
 
         self.apply(self._init_weights)
+
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
                 torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
+        elif isinstance(module, nn.Embedding) and module is not self.token_embedding_table:
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
@@ -124,12 +137,24 @@ class GPTLanguageModel(nn.Module):
 
         return logits, loss
 
-    def generate(self, idx, max_new_tokens, block_size):
+
+    def generate(self, idx, max_new_tokens):
         for _ in range(max_new_tokens):
-            idx_cond = idx[:, -block_size:]
+            idx_cond = idx[:, -self.params['context_size']:]
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             idx_next = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
+    
+
+    def save_model(self, directory, filename):
+        filepath = os.path.join(directory, filename)
+        torch.save(self.state_dict(), filepath)
+        print(f"Model successfully saved at: {filepath}")
+
+
+    def load_model(self, filepath):
+        self.load_state_dict(torch.load(filepath))
+        print(f"Model weights successfully loaded from: {filepath}")
