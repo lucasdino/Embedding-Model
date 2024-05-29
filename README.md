@@ -1,5 +1,4 @@
 # Embedding Model
----\n
 
 ## Motivation
 The current research project I'm interested in involves trying to generate embeddings for sequences. While token-level embeddings have proven to be incredibly powerful, I think that thinking on a token-level basis presents limitations and you can build more powerful models by thinking on a sequence-level basis. This ultimately has interesting use cases for Neurosymbolic Programming, which is also why I am interested in pursuing this further.\n
