@@ -1,10 +1,10 @@
-from loaddata import get_dataloader, select_datasets
+from mydataloader import get_dataloader
 
-DEFAULT_DATASET_TRAIN = ["enwiki_articles_20240320"]
-DEFAULT_DATASET_TEST  = ["enwiki_articles_20240320_TEST"]
+TRAIN_DATASETS = ["enwiki_articles_20240320"]
+TEST_DATASETS  = ["enwiki_articles_20240320_TEST"]
 
 class MyDataLoader():
-    def __init__(self, promptuser=True, batch_size=1, shuffle=True):
+    def __init__(self, batch_size=1, shuffle=True):
         """
             Custom Data Loader class that allows for custom selection of datasets
             
@@ -12,14 +12,9 @@ class MyDataLoader():
                 promptuser: (boolean) If true, will call on 'select_datasets' to give a popup that allows for user selection of datasets. If false, will use 'DEFAULT_DATASETS'
                 batch_size: (int) Number of samples per batch
                 shuffle: (boolean) If true, will shuffle the data when creating the dataloader
-        """
-        if promptuser:
-            self.datasets = select_datasets()
-        else:
-            self.datasets = DEFAULT_DATASET_TRAIN
-        
-        self.train_dataloader = get_dataloader(selected_datasets=self.datasets, batch_size=batch_size, shuffle=shuffle)
-        self.test_dataloader = get_dataloader(selected_datasets=DEFAULT_DATASET_TEST, batch_size=batch_size, shuffle=shuffle)
+        """        
+        self.train_dataloader = get_dataloader(selected_datasets=TRAIN_DATASETS, batch_size=batch_size, shuffle=shuffle)
+        self.test_dataloader = get_dataloader(selected_datasets=TEST_DATASETS, batch_size=batch_size, shuffle=shuffle)
     
     def get_train_dataloader(self):
         return self.train_dataloader

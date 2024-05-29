@@ -2,6 +2,9 @@ data/
 writeup/
 weights/
 models/
-.ipynb_checkpoints/
 embedding_model/trained_models/
-embedding_model/loss_results/
+**/.ipynb_checkpoints/
+**/.virtual_documents/
+**/__pycache__/
+**/log/
+**/loss_results/
