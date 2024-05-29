@@ -14,8 +14,8 @@ The current research project I'm interested in involves trying to generate embed
 ## Setup Instructions
 
 ### Creating the Environment
-To set up the project environment, run the following command in the project directory (where `environment.yml` is located):
+To set up the project environment, run the following command in the project directory (where `environment.yaml` is located):
 
 ```bash
-conda env create -f environment.yml
+conda env create -f environment.yaml
 ```
