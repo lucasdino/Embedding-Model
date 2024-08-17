@@ -1,7 +1,7 @@
 # Embedding Model
 
 ## Motivation
-I want to recreate Word2Vec from scratch including:
+I wanted to recreate Word2Vec from scratch including:
 - Sourcing data (English Wikipedia used in this)
 - Cleaning data (To be further discussed)
 - Creating a tokenizer (BPE algorithm based on Karpathy video, then further optimized for run-time)
